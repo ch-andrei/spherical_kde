@@ -6,7 +6,7 @@
 * Performing spherical integrals
 """
 
-import numpy
+import numpy as np
 from scipy.integrate import dblquad
 
 
@@ -15,18 +15,18 @@ def cartesian_from_polar(phi, theta):
 
     Parameters
     ----------
-    phi, theta : float or numpy.array
+    phi, theta : float or np.array
         azimuthal and polar angle in radians.
 
     Returns
     -------
-    nhat : numpy.array
+    nhat : np.array
         unit vector(s) in direction (phi, theta).
     """
-    x = numpy.sin(theta) * numpy.cos(phi)
-    y = numpy.sin(theta) * numpy.sin(phi)
-    z = numpy.cos(theta)
-    return numpy.array([x, y, z])
+    x = np.sin(theta) * np.cos(phi)
+    y = np.sin(theta) * np.sin(phi)
+    z = np.cos(theta)
+    return np.array([x, y, z])
 
 
 def polar_from_cartesian(x):
@@ -39,14 +39,14 @@ def polar_from_cartesian(x):
 
     Returns
     -------
-    phi, theta : float or numpy.array
+    phi, theta : float or np.array
         azimuthal and polar angle in radians.
     """
-    x = numpy.array(x)
+    x = np.array(x)
     r = (x*x).sum(axis=0)**0.5
     x, y, z = x
-    theta = numpy.arccos(z / r)
-    phi = numpy.mod(numpy.arctan2(y, x), numpy.pi*2)
+    theta = np.arccos(z / r)
+    phi = np.mod(np.arctan2(y, x), np.pi*2)
     return phi, theta
 
 
@@ -55,16 +55,16 @@ def polar_from_decra(ra, dec):
 
     Parameters
     ----------
-    ra, dec : float or numpy.array
+    ra, dec : float or np.array
         Right ascension and declination in degrees.
 
     Returns
     -------
-    phi, theta : float or numpy.array
+    phi, theta : float or np.array
         Spherical polar coordinates in radians
     """
-    phi = numpy.mod(ra/180.*numpy.pi, 2*numpy.pi)
-    theta = numpy.pi/2-dec/180.*numpy.pi
+    phi = np.mod(ra / 180. * np.pi, 2 * np.pi)
+    theta = np.pi / 2 - dec / 180. * np.pi
     return phi, theta
 
 
@@ -73,17 +73,17 @@ def decra_from_polar(phi, theta):
 
     Parameters
     ----------
-    phi, theta : float or numpy.array
+    phi, theta : float or np.array
         azimuthal and polar angle in radians
 
     Returns
     -------
-    ra, dec : float or numpy.array
+    ra, dec : float or np.array
         Right ascension and declination in degrees.
     """
-    ra = phi * (phi < numpy.pi) + (phi-2*numpy.pi)*(phi > numpy.pi)
-    dec = numpy.pi/2-theta
-    return ra/numpy.pi*180, dec/numpy.pi*180
+    ra = phi * (phi < np.pi) + (phi - 2 * np.pi) * (phi > np.pi)
+    dec = np.pi / 2 - theta
+    return ra / np.pi * 180, dec / np.pi * 180
 
 
 def logsinh(x):
@@ -91,17 +91,15 @@ def logsinh(x):
 
     Parameters
     ----------
-    x : float or numpy.array
+    x : float or np.array
         argument to evaluate at, must be positive
 
     Returns
     -------
-    float or numpy.array
+    float or np.array
         log(sinh(x))
     """
-    if numpy.any(x < 0):
-        raise ValueError("logsinh only valid for positive arguments")
-    return x + numpy.log(1-numpy.exp(-2*x)) - numpy.log(2)
+    return x + np.log(1-np.exp(-2*x)) - np.log(2)
 
 
 def rotation_matrix(a, b):
@@ -109,12 +107,12 @@ def rotation_matrix(a, b):
 
     Parameters
     ----------
-    a, b : numpy.array
+    a, b : np.array
         Three dimensional vectors defining the rotation matrix
 
     Returns
     -------
-    M : numpy.array
+    M : np.array
         Three by three rotation matrix
 
     Notes
@@ -122,17 +120,17 @@ def rotation_matrix(a, b):
     StackExchange post:
         https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
     """
-    v = numpy.cross(a, b)
+    v = np.cross(a, b)
     s = v.dot(v)**0.5
     if s == 0:
-        return numpy.identity(3)
-    c = numpy.dot(a, b)
-    Id = numpy.identity(3)
+        return np.identity(3)
+    c = np.dot(a, b)
+    Id = np.identity(3)
     v1, v2, v3 = v
-    vx = numpy.array([[0, -v3, v2],
+    vx = np.array([[0, -v3, v2],
                       [v3, 0, -v1],
                       [-v2, v1, 0]])
-    vx2 = numpy.matmul(vx, vx)
+    vx2 = np.matmul(vx, vx)
     R = Id + vx + vx2 * (1-c)/s**2
     return R
 
@@ -159,11 +157,11 @@ def spherical_integrate(f, log=False):
     """
     if log:
         def g(phi, theta):
-            return numpy.exp(f(phi, theta))
+            return np.exp(f(phi, theta))
     else:
         g = f
-    ans, _ = dblquad(lambda phi, theta: g(phi, theta)*numpy.sin(theta),
-                     0, numpy.pi, lambda x: 0, lambda x: 2*numpy.pi)
+    ans, _ = dblquad(lambda phi, theta: g(phi, theta)*np.sin(theta),
+                     0, np.pi, lambda x: 0, lambda x: 2*np.pi)
     return ans
 
 
@@ -189,5 +187,5 @@ def spherical_kullback_liebler(logp, logq):
         https://en.wikipedia.org/wiki/Kullback-Leibler_divergence
     """
     def KL(phi, theta):
-        return (logp(phi, theta)-logq(phi, theta))*numpy.exp(logp(phi, theta))
+        return (logp(phi, theta)-logq(phi, theta))*np.exp(logp(phi, theta))
     return spherical_integrate(KL)

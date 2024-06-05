@@ -43,10 +43,10 @@ for ax in fig.axes:
     ax.set_global()
     ax.gridlines()
     ax.coastlines(linewidth=0.1)
-    kde_green.plot(ax, 'g')
-    kde_green.plot_samples(ax)
-    kde_red.plot(ax, 'r')
-    kde_blue.plot(ax, 'b')
+    kde_green.plot_gaze_sphere_kde(ax, 'g')
+    kde_green.plot_gaze_rays(ax)
+    kde_red.plot_gaze_sphere_kde(ax, 'r')
+    kde_blue.plot_gaze_sphere_kde(ax, 'b')
 
 # Save to plot
 fig.tight_layout()

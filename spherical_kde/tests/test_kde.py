@@ -39,10 +39,10 @@ def test_kde_incorrect_projection():
     ax = fig.add_subplot(111)
     kde = random_kde(100)[0]
     with pytest.raises(TypeError):
-        kde.plot(ax)
+        kde.plot_gaze_sphere_kde(ax)
     ax.projection = 1
     with pytest.raises(TypeError):
-        kde.plot(ax)
+        kde.plot_gaze_sphere_kde(ax)
 
 
 def test_kde_bandwith_automatic():
@@ -65,9 +65,9 @@ def test_kde_plotting():
     fig.add_subplot(312, projection=cartopy.crs.Orthographic())
     fig.add_subplot(313, projection=cartopy.crs.PlateCarree())
     for ax, col in zip(fig.axes, ['g', 'r', 'b']):
-        kde.plot(ax, col)
-        kde.plot_samples(ax)
-        kde.plot_samples(ax, nsamples=10)
+        kde.plot_gaze_sphere_kde(ax, col)
+        kde.plot_gaze_rays(ax)
+        kde.plot_gaze_rays(ax, nsamples=10)
 
 
 def test_kde_normalised():

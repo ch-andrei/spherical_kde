@@ -16,9 +16,9 @@ def random_VonMisesFisher_distribution():
     phi0, theta0, sigma0 = random_phi_theta_sigma()
 
     def f(phi, theta):
-        return numpy.exp(dxns.VonMisesFisher_distribution(phi, theta,
-                                                          phi0, theta0,
-                                                          sigma0))
+        return numpy.exp(dxns.VonMisesFisher_log_prob(phi, theta,
+                                                      phi0, theta0,
+                                                      sigma0))
     return f, phi0, theta0, sigma0
 
 
