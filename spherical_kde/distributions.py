@@ -26,24 +26,27 @@ from spherical_kde.spherical_kde.utils import cartesian_from_polar, polar_from_c
 class SphericalKDE(object):
     """ Spherical kernel density estimator
     """
-    def __init__(self, mu, weights=None):
+    def __init__(self, mu: np.ndarray, weights: np.ndarray = None):
         # print('mu', mu.shape)
+        if mu.shape[0] != 3:
+            raise ValueError()
 
         self.mu = mu.reshape(3, -1)  # 3, N
         self.num_mu = mu.shape[1]
 
         if weights is None:
-            weights = np.ones_like(mu[0])
-        self.weights = np.array(weights) / sum(weights)
+            weights = np.ones(self.num_mu, float)
+        self.weights = weights / weights.sum()  # normalize to sum to 1.0
 
-        self.bandwidth = 1.06 * VonMises_std(self.mu) * len(weights) ** -0.2
+        self.bandwidth = 1.06 * VonMises_std(self.mu) * self.num_mu ** -0.2
 
         # precompute kde at centers
-        self.density = self.evaluate_prob_density(self.mu)  # kde at input vectors
+        self.density = np.exp(self.evaluate_log_prob_density(self.mu))  # pdf at input vectors
         self.density = self.density / np.sum(self.density)  # softmax (exp / sum exp)
         self.density_cumsum = np.cumsum(self.density)
 
     def sample_distribution(self, num_samples):
+        raise NotImplementedError()  # TODO  verify this
         # Note: we can only sample from the VMF distribution for a single center (mu) vector.
         # Given N center vectors on which KDE is computed (self.mu), compute density at each center.
         # Then, use the density map as the sampling probability map, and sample N centers.
@@ -52,21 +55,18 @@ class SphericalKDE(object):
         sample_mu_inds = (np.searchsorted(self.density_cumsum, sample_mu)).astype(int)  # pick N mu vectors
         mu = self.mu[:, sample_mu_inds]
         x = VonMisesFisher_sample(mu, self.bandwidth, num_samples)  # draw VMF samples and rotate them towards mu
-        pdf = self.evaluate_prob_density(x)
-        return x, pdf
+        log_prob = self.evaluate_log_prob_density(x)
+        return x, log_prob
 
     def evaluate_prob_density(self, x):
-        # AC note: when integrated over unit sphere, the cdf doesnt sum to 1.0.
-        # I dont know how to normalize this properly, seems like dividing by pi/2 helps to keep pdf < 1.0
-        # we then have cdf < 1.0 by some relatively small value which slightly increases with number of centers
-        return np.exp(self.evaluate_log_prob_density(x)) / np.pi * 2
+        return np.exp(self.evaluate_log_prob_density(x))
 
     def evaluate_log_prob_density(self, x):
         # x shape (3,N)
         return logsumexp(
             VonMisesFisher_log_prob(x, self.mu, self.bandwidth),
             axis=-1,  # sum over N from shape (3,N)
-            b=self.weights  # if uniform weights, this is the same as dividing output of logsumexp by self.num_pu
+            b=self.weights  # if uniform weights, this is the same as dividing output of logsumexp by self.num_mu
         )
 
 
@@ -126,7 +126,30 @@ def sample_uniform_sphere(num_samples):
     z = 1.0 - 2.0 * uv[0]
     r = np.sqrt(np.clip(1 - z * z, 0.0, None))
     phi = 2.0 * np.pi * uv[1]
-    return np.concatenate([r * np.cos(phi), r * np.sin(phi), z], axis=0).reshape(3, num_samples)  # 3, N
+
+    return np.stack([
+        r * np.cos(phi),
+        r * np.sin(phi),
+        z
+    ], axis=0)  # 3, N
+
+
+def make_fibonacci_unit_sphere(num_samples):
+    indices = np.arange(num_samples, dtype=float)
+    phi = np.pi * (np.sqrt(5) - 1.)  # golden angle in radians
+
+    # Compute y values linearly spaced from 1 to -1
+    y = 1 - 2 * (indices / (num_samples - 1))
+    radius = np.sqrt(1 - y ** 2)
+
+    # Theta based on golden angle increment
+    theta = phi * indices
+    x = np.cos(theta) * radius
+    z = np.sin(theta) * radius
+
+    points = np.stack((x, y, z), axis=0)    # 3, N
+
+    return points
 
 
 def rotation_matrix(fw, eps=1e-9):
